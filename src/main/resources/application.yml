@@ -8,6 +8,11 @@ spring:
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
@@ -16,8 +21,25 @@ spring:
       hibernate:
         format_sql: true
 
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
 server:
   port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+      show-details: when-authorized
 
 #redisson:
 #  single-server-config:

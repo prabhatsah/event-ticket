@@ -1,11 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: event-booking-api
   namespace: event-booking
 
 spec:
   replicas: 3
+
+  revisionHistoryLimit: 5
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 
   selector:
     matchLabels:
@@ -17,15 +26,21 @@ spec:
         app: event-booking-api
 
     spec:
+      terminationGracePeriodSeconds: 45
+
       containers:
         - name: event-booking-api
 
-          image: event-booking-api:1.0.4
-
+          image: event-booking-api:1.1.0
           imagePullPolicy: IfNotPresent
 
           ports:
-            - containerPort: 8080
+            - name: http
+              containerPort: 8080
+
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: loadtest
 
           envFrom:
             - configMapRef:
@@ -33,3 +48,38 @@ spec:
 
             - secretRef:
                 name: event-booking-secret
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+
+            periodSeconds: 5
+            failureThreshold: 24
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
